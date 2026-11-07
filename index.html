@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="bn">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="TikTok HD Downloader - preview public TikTok links and open the original post to save when the creator allows it.">
+  <title>TikTok HD Downloader</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="wrap">
+    <header><div class="logo">▶</div><div><h1>TikTok HD Downloader</h1><p>Public TikTok link preview</p></div></header>
+    <section class="panel">
+      <h2>ভিডিও লিংক দিন</h2>
+      <p>Public TikTok ভিডিওর লিংক পেস্ট করুন।</p>
+      <form id="link-form">
+        <input id="video-url" type="url" placeholder="https://www.tiktok.com/..." required>
+        <button type="submit">ভিডিও দেখুন</button>
+      </form>
+      <p id="status" role="status"></p>
+      <div id="result" hidden>
+        <div class="preview" id="preview"></div>
+        <a id="open-link" class="button secondary" target="_blank" rel="noopener">TikTok-এ ভিডিও খুলুন</a>
+        <p class="note">নির্মাতা Save Video অনুমতি দিলে TikTok-এর Share → Save video ব্যবহার করুন। এই সাইট TikTok-এর সীমাবদ্ধতা এড়িয়ে বা অনুমতি ছাড়া MP4 ডাউনলোড করে না।</p>
+      </div>
+    </section>
+    <nav><a href="about.html">About</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a><a href="contact.html">Contact</a></nav>
+    <footer>Only use videos you own or have permission to save.</footer>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
