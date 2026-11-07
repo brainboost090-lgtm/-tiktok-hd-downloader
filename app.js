@@ -1,32 +1,12 @@
-const form=document.getElementById('link-form');
-const input=document.getElementById('video-url');
-const statusEl=document.getElementById('status');
-const result=document.getElementById('result');
-const preview=document.getElementById('preview');
-const openLink=document.getElementById('open-link');
-function isTikTokHost(host){return host==='tiktok.com'||host.endsWith('.tiktok.com');}
-form.addEventListener('submit',async(e)=>{
- e.preventDefault(); statusEl.textContent='লিংক যাচাই করা হচ্ছে...'; result.hidden=true;
- try{
-  const entered=new URL(input.value.trim());
-  if(!isTikTokHost(entered.hostname)) throw new Error('শুধু TikTok লিংক দিন।');
-  let finalUrl=entered.href;
-  if(entered.hostname==='vm.tiktok.com'||entered.hostname==='vt.tiktok.com'||entered.hostname==='t.tiktok.com'){
-   const response=await fetch('/.netlify/functions/resolve-tiktok?url='+encodeURIComponent(finalUrl));
-   const data=await response.json();
-   if(!response.ok||!data.url) throw new Error(data.error||'Short link resolve করা যায়নি। Full TikTok link ব্যবহার করুন।');
-   finalUrl=data.url;
-  }
-  openLink.href=finalUrl;
-  const videoId=finalUrl.match(/\/video\/(\d+)/)?.[1];
-  preview.innerHTML='';
-  if(videoId){
-   const block=document.createElement('blockquote');
-   block.className='tiktok-embed'; block.cite=finalUrl; block.dataset.videoId=videoId;
-   block.style.maxWidth='605px'; block.style.minWidth='250px';
-   const section=document.createElement('section'); block.appendChild(section); preview.appendChild(block);
-   if(!document.getElementById('tiktok-embed-script')){const s=document.createElement('script');s.id='tiktok-embed-script';s.src='https://www.tiktok.com/embed.js';s.async=true;document.body.appendChild(s);}
-  } else {preview.textContent='লিংকটি TikTok-এ খুলে ভিডিওটি দেখুন।';}
-  result.hidden=false; statusEl.textContent='';
- }catch(err){statusEl.textContent=err.message||'লিংকটি যাচাই করা যায়নি।';}
-});
+const form=document.getElementById('form'),input=document.getElementById('url'),statusBox=document.getElementById('status'),result=document.getElementById('result'),preview=document.getElementById('preview'),download=document.getElementById('download');
+let currentVideoUrl='';
+function isTikTok(u){try{const x=new URL(u);return ['https:','http:'].includes(x.protocol)&&/(^|\\.)tiktok\\.com$/i.test(x.hostname)}catch{return false}}
+function videoId(u){const m=u.match(/\\/video\\/(\\d+)/);return m?m[1]:null}
+form.addEventListener('submit',async e=>{e.preventDefault();statusBox.textContent='লিংক যাচাই করা হচ্ছে…';result.hidden=true;preview.innerHTML='';const entered=input.value.trim();if(!isTikTok(entered)){statusBox.textContent='সঠিক TikTok লিংক দিন।';return}
+let resolved=entered;try{const r=await fetch('/.netlify/functions/resolve-tiktok?url='+encodeURIComponent(entered));if(r.ok){const d=await r.json();if(d.url&&isTikTok(d.url))resolved=d.url}}catch(err){}
+currentVideoUrl=resolved;const id=videoId(resolved);if(!id){statusBox.textContent='লিংকটি খোলা হয়েছে, তবে প্রিভিউয়ের জন্য সম্পূর্ণ video link পাওয়া যায়নি। TikTok থেকে Share → Copy link করে আবার দিন।';result.hidden=false;return}
+preview.innerHTML='<iframe src="https://www.tiktok.com/embed/v2/'+encodeURIComponent(id)+'" allow="encrypted-media; fullscreen" title="TikTok video preview"></iframe>';result.hidden=false;statusBox.textContent='ভিডিও প্রিভিউ প্রস্তুত।'});
+download.addEventListener('click',()=>{if(currentVideoUrl)window.open(currentVideoUrl,'_blank','noopener,noreferrer')});
+document.getElementById('mp4-form').addEventListener('submit',e=>{e.preventDefault();const field=document.getElementById('mp4-url'),msg=document.getElementById('mp4-status');let u;try{u=new URL(field.value.trim())}catch{msg.textContent='সঠিক MP4 ফাইলের URL দিন।';return}
+if(!['https:','http:'].includes(u.protocol)||! /\\.mp4$/i.test(u.pathname)){msg.textContent='এটি সরাসরি .mp4 ফাইলের লিংক বলে মনে হচ্ছে না।';return}
+msg.textContent='MP4 ফাইলটি নতুন ট্যাবে খোলা হচ্ছে। ব্রাউজার প্লে করলে ভিডিও মেনু থেকে Download/Save ব্যবহার করুন।';const a=document.createElement('a');a.href=u.href;a.target='_blank';a.rel='noopener noreferrer';a.download='';document.body.appendChild(a);a.click();a.remove()});
