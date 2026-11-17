@@ -1,92 +1,18 @@
-const form = document.getElementById('form');
-const input = document.getElementById('url');
-const statusBox = document.getElementById('status');
-const result = document.getElementById('result');
-const preview = document.getElementById('preview');
-const openTikTok = document.getElementById('open-tiktok');
-let currentVideoUrl = '';
-
-function isTikTokUrl(value) {
-  try {
-    const u = new URL(value);
-    return ['https:', 'http:'].includes(u.protocol) &&
-      (u.hostname === 'tiktok.com' || u.hostname.endsWith('.tiktok.com'));
-  } catch {
-    return false;
-  }
-}
-
-function getVideoId(value) {
-  const match = value.match(/\/video\/(\d+)/);
-  return match ? match[1] : null;
-}
-
-form.addEventListener('submit', async (event) => {
-  event.preventDefault();
-  const entered = input.value.trim();
-  result.hidden = true;
-  preview.replaceChildren();
-  currentVideoUrl = '';
-
-  if (!isTikTokUrl(entered)) {
-    statusBox.textContent = 'সঠিক TikTok লিংক দিন।';
-    return;
-  }
-
-  statusBox.textContent = 'লিংক যাচাই করা হচ্ছে…';
-  let resolved = entered;
-
-  try {
-    const response = await fetch('/.netlify/functions/resolve-tiktok?url=' + encodeURIComponent(entered));
-    if (response.ok) {
-      const data = await response.json();
-      if (data.url && isTikTokUrl(data.url)) resolved = data.url;
-    }
-  } catch (_) {
-    // Full TikTok URLs can still be previewed if the resolver is unavailable.
-  }
-
-  currentVideoUrl = resolved;
-  const id = getVideoId(resolved);
-
-  if (!id) {
-    statusBox.textContent = 'এই লিংক থেকে ভিডিও ID পাওয়া যায়নি। TikTok থেকে Share → Copy link করে আবার চেষ্টা করুন।';
-    return;
-  }
-
-  const frame = document.createElement('iframe');
-  frame.src = 'https://www.tiktok.com/embed/v2/' + encodeURIComponent(id);
-  frame.title = 'TikTok video preview';
-  frame.allow = 'encrypted-media; fullscreen';
-  frame.allowFullscreen = true;
-  preview.appendChild(frame);
-
-  result.hidden = false;
-  statusBox.textContent = 'ভিডিও প্রিভিউ প্রস্তুত।';
-});
-
-openTikTok.addEventListener('click', () => {
-  if (currentVideoUrl) window.open(currentVideoUrl, '_blank', 'noopener,noreferrer');
-});
-
-document.getElementById('mp4-form').addEventListener('submit', (event) => {
-  event.preventDefault();
-  const field = document.getElementById('mp4-url');
-  const message = document.getElementById('mp4-status');
-  let url;
-
-  try {
-    url = new URL(field.value.trim());
-  } catch {
-    message.textContent = 'সঠিক MP4 ফাইলের URL দিন।';
-    return;
-  }
-
-  if (!['https:', 'http:'].includes(url.protocol) || !/\.mp4$/i.test(url.pathname)) {
-    message.textContent = 'এটি সরাসরি .mp4 ফাইলের লিংক বলে মনে হচ্ছে না।';
-    return;
-  }
-
-  message.textContent = 'MP4 ফাইলটি নতুন ট্যাবে খোলা হচ্ছে। ব্রাউজারের ভিডিও মেনু থেকে Download/Save ব্যবহার করুন।';
-  window.open(url.href, '_blank', 'noopener,noreferrer');
+const form=document.getElementById('form'), input=document.getElementById('url'), statusBox=document.getElementById('status'), result=document.getElementById('result'), formatsBox=document.getElementById('formats');
+form.addEventListener('submit',async e=>{
+ e.preventDefault(); result.hidden=true; formatsBox.replaceChildren(); statusBox.textContent='ভিডিও খোঁজা হচ্ছে…';
+ try{
+  const r=await fetch('/api/info?url='+encodeURIComponent(input.value.trim()));
+  const d=await r.json(); if(!r.ok) throw new Error(d.detail||'ভিডিও পাওয়া যায়নি');
+  document.getElementById('title').textContent=d.title||'TikTok video';
+  const thumb=document.getElementById('thumb'); if(d.thumbnail){thumb.src=d.thumbnail;thumb.hidden=false}else{thumb.hidden=true}
+  if(!d.formats||!d.formats.length) throw new Error('ডাউনলোডযোগ্য ফরম্যাট পাওয়া যায়নি');
+  d.formats.forEach((f,i)=>{
+   const row=document.createElement('div'); row.className='format';
+   const label=document.createElement('span'); label.textContent=(f.height?f.height+'p':'Available')+' • '+(f.ext||'video').toUpperCase();
+   const a=document.createElement('a'); a.href=f.url; a.target='_blank'; a.rel='noopener noreferrer'; a.textContent='Download'; a.download='';
+   row.append(label,a); formatsBox.append(row);
+  });
+  result.hidden=false; statusBox.textContent='উপলভ্য কোয়ালিটি পাওয়া গেছে।';
+ }catch(err){statusBox.textContent=err.message||'সমস্যা হয়েছে। পরে আবার চেষ্টা করুন।'}
 });
